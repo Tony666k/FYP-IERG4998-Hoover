@@ -4,10 +4,17 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <time.h>
+#include <sys/time.h> //using more samller time
 
 #define PORT 5001
 #define BUF_SIZE 1024
 #define MESSAGE_LENGTH 8
+
+unsigned int get_microsecond_seed() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000000 + tv.tv_usec;  // 返回微秒级时间戳
+}
 
 void generate_random_binary_message(char *bmessage, int length) {
     for (int i = 0; i < length; i++) {
@@ -18,7 +25,7 @@ void generate_random_binary_message(char *bmessage, int length) {
 
 void send_udp_message(const char *source_ip,int source_port,const char *target_ip,int target_port){
 int sockfd;
-srand(time(NULL));
+srand(get_microsecond_seed());
 struct sockaddr_in server_addr,target_addr;
 char message[MESSAGE_LENGTH + 1] ;
 generate_random_binary_message(message, MESSAGE_LENGTH);
