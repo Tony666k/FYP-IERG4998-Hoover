@@ -53,7 +53,8 @@ target_addr.sin_port=htons(target_port);
 
 //send the data packet
 sendto(sockfd,(const char *)message_with_uid,strlen(message_with_uid),0,(const struct sockaddr *)&target_addr,sizeof(target_addr));
-printf("Message sent from %s:%d to %s:%d\n",source_ip,source_port,target_ip,target_port);
+printf("Message sent from %s:%d to %s:%d UID:%d\n",source_ip,source_port,target_ip,target_port,uid);
+
 close(sockfd);
 }
 
