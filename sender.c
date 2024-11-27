@@ -18,10 +18,15 @@ void generate_random_binary_message(char *bmessage, int length) {
 
 void send_udp_message(const char *source_ip,int source_port,const char *target_ip,int target_port){
 int sockfd;
+srand(time(NULL));
 struct sockaddr_in server_addr,target_addr;
 char message[MESSAGE_LENGTH + 1] ;
-generate_random_binary_message(binary_message, MESSAGE_LENGTH);
+generate_random_binary_message(message, MESSAGE_LENGTH);
+char message_with_uid[MESSAGE_LENGTH + 30];
+int uid = rand();
+snprintf(message_with_uid, sizeof(message_with_uid), "UID%d:%s", uid, message);
 
+    
 //create socket
 if((sockfd=socket(AF_INET,SOCK_DGRAM,0))<0){
 perror("Socket creation failed");
@@ -47,7 +52,7 @@ target_addr.sin_addr.s_addr=inet_addr(target_ip);
 target_addr.sin_port=htons(target_port);
 
 //send the data packet
-sendto(sockfd,(const char *)message,strlen(message),0,(const struct sockaddr *)&target_addr,sizeof(target_addr));
+sendto(sockfd,(const char *)message_with_uid,strlen(message_with_uid),0,(const struct sockaddr *)&target_addr,sizeof(target_addr));
 printf("Message sent from %s:%d to %s:%d\n",source_ip,source_port,target_ip,target_port);
 close(sockfd);
 }
