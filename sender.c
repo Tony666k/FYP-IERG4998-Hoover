@@ -8,7 +8,7 @@
 
 #define PORT 5001
 #define BUF_SIZE 1024
-#define MESSAGE_LENGTH 8
+#define MESSAGE_LENGTH 88
 
 unsigned int get_microsecond_seed() {
     struct timeval tv;
@@ -77,7 +77,7 @@ int main(){
  srand(time(0));//set random seed
  
 //loop for send data
-for (int i=1; i<=10; i++){
+for (int i=1; i<=MESSAGE_LENGTH; i++){
 if( i % 2 != 0)
 send_udp_message(source_ip,10000,target_ip,target_port);
 if( i % 2 == 0)
