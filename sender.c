@@ -7,12 +7,20 @@
 
 #define PORT 5001
 #define BUF_SIZE 1024
+#define MESSAGE_LENGTH 8
+
+void generate_random_binary_message(char *bmessage, int length) {
+    for (int i = 0; i < length; i++) {
+        bmessage[i] = rand() % 2 ? '1' : '0';
+    }
+    bmessage[length] = '\0';
+}
 
 void send_udp_message(const char *source_ip,int source_port,const char *target_ip,int target_port){
 int sockfd;
 struct sockaddr_in server_addr,target_addr;
-char message[] = "test";
-
+char message[MESSAGE_LENGTH + 1] ;
+generate_random_binary_message(binary_message, MESSAGE_LENGTH);
 
 //create socket
 if((sockfd=socket(AF_INET,SOCK_DGRAM,0))<0){
