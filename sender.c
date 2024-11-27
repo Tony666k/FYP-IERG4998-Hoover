@@ -11,7 +11,7 @@
 void send_udp_message(const char *source_ip,int source_port,const char *target_ip,int target_port){
 int sockfd;
 struct sockaddr_in server_addr,target_addr;
-char message[] = rand() % 100 + 1;
+char message[] = "test";
 
 
 //create socket
