@@ -112,13 +112,12 @@ int main() {
 
             // Send message for port 10001
             send_udp_message(source_ip, 10001, target_ip, target_port, message_send_10001);
-        }
 
-        if(i>1){
-    xor_messages(binary_message_10000, binary_message_10001, xor_result, MESSAGE_LENGTH);
 
-    // Generate a new UID for sending XOR result
-    int xor_uid = UID();
+              xor_messages(binary_message_10000, binary_message_10001, xor_result, MESSAGE_LENGTH);
+
+                // Generate a new UID for sending XOR result
+                int xor_uid = UID();
     
     // Combine UID with XOR result for sending
     char xor_message_with_uid[BUF_SIZE];
@@ -128,6 +127,8 @@ int main() {
     send_udp_message(source_ip, 10002, target_ip, target_port, xor_message_with_uid);
     printf("Message sent: %s\n", xor_message_with_uid);
         }
+
+    
         
     }
 
