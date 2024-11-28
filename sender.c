@@ -105,6 +105,9 @@ void* send_to_10000(void *arg) {
     const char *target_ip = "192.168.229.134";
     int target_port = PORT;
 
+    // Clear binary message before each use
+    memset(data->binary_message_10000, 0, sizeof(data->binary_message_10000));
+
     // Generate the message with binary content and UID
     message_combine(data->binary_message_10000, data->binary_message_10000, &data->uid_10000, 0);
     send_udp_message(source_ip, 10000, target_ip, target_port, data->binary_message_10000);
@@ -118,6 +121,9 @@ void* send_to_10001(void *arg) {
     const char *source_ip = "192.168.229.135";
     const char *target_ip = "192.168.229.134";
     int target_port = PORT;
+
+    // Clear binary message before each use
+    memset(data->binary_message_10001, 0, sizeof(data->binary_message_10001));
 
     // Generate the message with binary content and UID
     message_combine(data->binary_message_10001, data->binary_message_10001, &data->uid_10001, 0);
