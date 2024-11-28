@@ -102,7 +102,7 @@ int main() {
             // Generate message for port 10000
             message_combine(message_send_10000, &uid_10000, binary_message_10000);
 
-            // Try to send message for port 10000 (but don't check result)
+            // Send message for port 10000
             send_udp_message(source_ip, 10000, target_ip, target_port, message_send_10000);
         }
 
@@ -110,17 +110,24 @@ int main() {
             // Generate message for port 10001
             message_combine(message_send_10001, &uid_10001, binary_message_10001);
 
-            // Try to send message for port 10001 (but don't check result)
+            // Send message for port 10001
             send_udp_message(source_ip, 10001, target_ip, target_port, message_send_10001);
-
-            // XOR the binary parts (without UID)
-            xor_messages(binary_message_10000, binary_message_10001, xor_result, MESSAGE_LENGTH);
-
-            // Send XOR result to port 10002 (this happens every loop)
-            send_udp_message(source_ip, 10002, target_ip, target_port, xor_result);
-            printf("Sent XOR result to port 10002: %s\n", xor_result);
         }
     }
+
+    // Now perform XOR operation without UID
+    xor_messages(binary_message_10000, binary_message_10001, xor_result, MESSAGE_LENGTH);
+
+    // Generate a new UID for sending XOR result
+    int xor_uid = UID();
+    
+    // Combine UID with XOR result for sending
+    char xor_message_with_uid[BUF_SIZE];
+    snprintf(xor_message_with_uid, sizeof(xor_message_with_uid), "UID(%d):%s", xor_uid, xor_result);
+
+    // Send XOR result with UID to port 10002
+    send_udp_message(source_ip, 10002, target_ip, target_port, xor_message_with_uid);
+    printf("Sent XOR result to port 10002: %s\n", xor_message_with_uid);
 
     return 0;
 }
