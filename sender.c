@@ -5,6 +5,8 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <sys/time.h>
+#include <pthread.h>
+
 
 #define PORT 5001
 #define BUF_SIZE 1024
