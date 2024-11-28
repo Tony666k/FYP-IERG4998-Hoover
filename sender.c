@@ -33,15 +33,23 @@ void message_combine(char *message_combined, int *uid) {
     snprintf(message_combined, BUF_SIZE, "UID(%d):%s", *uid, binary_message); // Combine UID and binary message
 }
 
-// Send UDP message to the target IP and port
-void send_udp_message(const char *source_ip, int source_port, const char *target_ip, int target_port, const char *message) {
+// XOR two binary messages and return the result
+void xor_messages(const char *msg1, const char *msg2, char *result, int length) {
+    for (int i = 0; i < length; i++) {
+        result[i] = (msg1[i] == msg2[i]) ? '0' : '1'; // XOR logic
+    }
+    result[length] = '\0'; // Null-terminate the result
+}
+
+// Send UDP message to the target IP and port, return 0 if send is successful, -1 if failed
+int send_udp_message(const char *source_ip, int source_port, const char *target_ip, int target_port, const char *message) {
     int sockfd;
     struct sockaddr_in server_addr, target_addr;
 
     // Create socket
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         perror("Socket creation failed");
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     // Set source address
@@ -54,7 +62,7 @@ void send_udp_message(const char *source_ip, int source_port, const char *target
     if (bind(sockfd, (const struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("Bind failed");
         close(sockfd);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     // Set destination address
@@ -67,11 +75,12 @@ void send_udp_message(const char *source_ip, int source_port, const char *target
     if (sendto(sockfd, message, strlen(message), 0, (const struct sockaddr *)&target_addr, sizeof(target_addr)) < 0) {
         perror("Send failed");
         close(sockfd);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     printf("Message sent: %s\n", message);
     close(sockfd);
+    return 0; // Send successful
 }
 
 int main() {
@@ -82,17 +91,34 @@ int main() {
     int num_ports = sizeof(source_ports) / sizeof(source_ports[0]);
     srand(time(0)); // Set random seed
 
-    char message_combined[BUF_SIZE];
-    int uid = 0;
+    char message_send_10000[BUF_SIZE], message_send_10001[BUF_SIZE];
+    char xor_result[MESSAGE_LENGTH + 1]; // Store the XOR result
+
+    int uid_10000, uid_10001;
 
     // Loop for sending data
     for (int i = 1; i <= MESSAGE_LENGTH; i++) {
         if (i % 2 != 0) {
-            message_combine(message_combined, &uid); // Generate message for odd cycles
-            send_udp_message(source_ip, 10000, target_ip, target_port, message_combined);
-        } else {
-            message_combine(message_combined, &uid); // Generate message for even cycles
-            send_udp_message(source_ip, 10001, target_ip, target_port, message_combined);
+            // Generate message for port 10000
+            message_combine(message_send_10000, &uid_10000);
+
+            // Try to send message for port 10000 (but don't check result)
+            send_udp_message(source_ip, 10000, target_ip, target_port, message_send_10000);
+        }
+
+        if (i % 2 == 0) {
+            // Generate message for port 10001
+            message_combine(message_send_10001, &uid_10001);
+
+            // Try to send message for port 10001 (but don't check result)
+            send_udp_message(source_ip, 10001, target_ip, target_port, message_send_10001);
+
+            // XOR the messages from 10000 and 10001
+            xor_messages(message_send_10000, message_send_10001, xor_result, MESSAGE_LENGTH);
+
+            // Send XOR result to port 10002 (this happens every loop)
+            send_udp_message(source_ip, 10002, target_ip, target_port, xor_result);
+            printf("Sent XOR result to port 10002: %s\n", xor_result);
         }
     }
 
