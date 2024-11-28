@@ -1,16 +1,17 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <time.h>
-#include <sys/time.h> // using smaller time
+#include <sys/time.h>
 
 #define PORT 5001
 #define BUF_SIZE 1024
 #define MESSAGE_LENGTH 8
 
-// Get a random UID using microsecond timestamp
+// Generate random UID using microsecond timestamp
 int UID() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -82,56 +83,44 @@ int send_udp_message(const char *source_ip, int source_port, const char *target_
     return 0; // Send successful
 }
 
-int main() {
-    const char *target_ip = "192.168.229.134";
+// Thread function for sending data to port 10000
+void* send_to_10000(void *arg) {
     const char *source_ip = "192.168.229.135";
-    int source_ports[] = {10000, 10001, 10002};
+    const char *target_ip = "192.168.229.134";
     int target_port = PORT;
-    int num_ports = sizeof(source_ports) / sizeof(source_ports[0]);
-    srand(time(0)); // Set random seed
 
-    char message_send_10000[BUF_SIZE], message_send_10001[BUF_SIZE];
-    char binary_message_10000[MESSAGE_LENGTH + 1], binary_message_10001[MESSAGE_LENGTH + 1];
-    char xor_result[MESSAGE_LENGTH + 1]; // Store the XOR result
-
-    int uid_10000, uid_10001;
-
-    // Loop for sending data
-    for (int i = 1; i <= MESSAGE_LENGTH; i++) {
-        if (i % 2 != 0) {
-            // Generate message for port 10000
-            message_combine(message_send_10000, &uid_10000, binary_message_10000);
-
-            // Send message for port 10000
-            send_udp_message(source_ip, 10000, target_ip, target_port, message_send_10000);
-        }
-
-        if (i % 2 == 0) {
-            // Generate message for port 10001
-            message_combine(message_send_10001, &uid_10001, binary_message_10001);
-
-            // Send message for port 10001
-            send_udp_message(source_ip, 10001, target_ip, target_port, message_send_10001);
-
-
-              xor_messages(binary_message_10000, binary_message_10001, xor_result, MESSAGE_LENGTH);
-
-                // Generate a new UID for sending XOR result
-                int xor_uid = UID();
+    char message_send_10000[BUF_SIZE], binary_message_10000[MESSAGE_LENGTH + 1];
+    int uid_10000;
     
-    // Combine UID with XOR result for sending
-    char xor_message_with_uid[BUF_SIZE];
-    snprintf(xor_message_with_uid, sizeof(xor_message_with_uid), "UID(%d):%s", xor_uid, xor_result);
+    message_combine(message_send_10000, &uid_10000, binary_message_10000);
+    send_udp_message(source_ip, 10000, target_ip, target_port, message_send_10000);
+    return NULL;
+}
 
-    // Send XOR result with UID to port 10002
-    send_udp_message(source_ip, 10002, target_ip, target_port, xor_message_with_uid);
-    printf("Message sent: %s\n", xor_message_with_uid);
-        }
+// Thread function for sending data to port 10001
+void* send_to_10001(void *arg) {
+    const char *source_ip = "192.168.229.135";
+    const char *target_ip = "192.168.229.134";
+    int target_port = PORT;
 
+    char message_send_10001[BUF_SIZE], binary_message_10001[MESSAGE_LENGTH + 1];
+    int uid_10001;
     
-        
-    }
+    message_combine(message_send_10001, &uid_10001, binary_message_10001);
+    send_udp_message(source_ip, 10001, target_ip, target_port, message_send_10001);
+    return NULL;
+}
 
+int main() {
+    // Create threads for sending data to port 10000 and 10001
+    pthread_t thread1, thread2;
+
+    pthread_create(&thread1, NULL, send_to_10000, NULL);
+    pthread_create(&thread2, NULL, send_to_10001, NULL);
+
+    // Wait for both threads to finish
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
 
     return 0;
 }
