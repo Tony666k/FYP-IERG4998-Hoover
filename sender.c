@@ -114,10 +114,6 @@ int main(){
         }
 //sleep(1);//send 1 time per second
      }
-}
-
-}
 return 0;
-        
 }
 
