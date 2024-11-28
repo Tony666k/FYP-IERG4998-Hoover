@@ -9,10 +9,10 @@
 
 #define PORT 5001 //set the udp port
 #define BUF_SIZE 1024 //set the buffer size 
-#define MESSAGE_LENGTH 16 //define the msg length (16 bits)
+#define MESSAGE_LENGTH 4 //define the msg length (4 bits)
 
-// Define a constant message with 16 '1's
-#define FIXED_MESSAGE "1111111111111111"
+// Define a constant message with 4 '1's
+#define FIXED_MESSAGE "1111"
 
 // Send UDP message to the client IP and port, return 0 if send is successful, -1 if failed
 int send_udpmsg(const char *server_ip, int server_port, const char *client_ip, int client_port, const char *message) {
@@ -70,8 +70,10 @@ void* send_to_10000(void *arg) {
     const char *client_ip = "192.168.229.134"; //our client IP addr
     int client_port = PORT;
 
-    // Send the fixed message to port 10000
-    send_udpmsg(server_ip, 10000, client_ip, client_port, FIXED_MESSAGE);
+    // Send the fixed message to port 10000 two times
+    for (int i = 0; i < 2; i++) {
+        send_udpmsg(server_ip, 10000, client_ip, client_port, FIXED_MESSAGE);
+    }
 
     return NULL; //the end of the thread
 }
@@ -82,25 +84,12 @@ void* send_to_10001(void *arg) {
     const char *client_ip = "192.168.229.134"; //our client IP addr
     int client_port = PORT;
 
-    // Send the fixed message to port 10001
-    send_udpmsg(server_ip, 10001, client_ip, client_port, FIXED_MESSAGE);
+    // Send the fixed message to port 10001 two times
+    for (int i = 0; i < 2; i++) {
+        send_udpmsg(server_ip, 10001, client_ip, client_port, FIXED_MESSAGE);
+    }
 
     return NULL; //the end of the thread
-}
-
-// Thread function for sending XOR result to port 10002
-void* send_to_10002(void *arg) {
-    const char *server_ip = "192.168.229.135"; //our server IP addr
-    const char *client_ip = "192.168.229.134"; //our client IP addr
-    int client_port = PORT;
-
-    // XOR result of two identical messages is always 0
-    const char *XOR_result = "0000000000000000";
-
-    // Send XOR result to port 10002
-    send_udpmsg(server_ip, 10002, client_ip, client_port, XOR_result);
-
-    return NULL;
 }
 
 int main() {
@@ -108,25 +97,16 @@ int main() {
     const char *client_ip = "192.168.229.134"; //our client IP addr
     int client_port = PORT;
 
-    // Send the messages 10 times (you can adjust the number of iterations)
-    for (int i = 0; i < 10; i++) {
-        pthread_t thread_10000, thread_10001, thread_10002;
+    // Create threads for sending data to port 10000 and 10001
+    pthread_t thread_10000, thread_10001;
 
-        // Create threads for sending data to port 10000 and 10001
-        pthread_create(&thread_10000, NULL, send_to_10000, NULL);
-        pthread_create(&thread_10001, NULL, send_to_10001, NULL);
+    // Start sending data to port 10000 and 10001
+    pthread_create(&thread_10000, NULL, send_to_10000, NULL);
+    pthread_create(&thread_10001, NULL, send_to_10001, NULL);
 
-        // Wait for both threads to complete
-        pthread_join(thread_10000, NULL);
-        pthread_join(thread_10001, NULL);
-
-        // Send the XOR result to 10002
-        pthread_create(&thread_10002, NULL, send_to_10002, NULL);
-        pthread_join(thread_10002, NULL);
-
-        // Optional: Add a small delay
-        // sleep(1);
-    }
+    // Wait for both threads to complete
+    pthread_join(thread_10000, NULL);
+    pthread_join(thread_10001, NULL);
 
     return 0;
 }
