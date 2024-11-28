@@ -26,11 +26,9 @@ void Binary_choose(char *message, int length) {
 }
 
 // Combine the binary message and UID into a string
-void message_combine(char *message_combined, int *uid) {
-    char binary_message[MESSAGE_LENGTH + 1];
-    Binary_choose(binary_message, MESSAGE_LENGTH); // Generate random binary message
+void message_combine(char *message_binary, int *uid) {
     *uid = UID(); // Generate a random UID
-    snprintf(message_combined, BUF_SIZE, "UID(%d):%s", *uid, binary_message); // Combine UID and binary message
+    snprintf(message_binary, BUF_SIZE, "UID(%d):%s", *uid, message_binary); // Combine UID and binary message
 }
 
 // XOR two binary messages and return the result
@@ -90,7 +88,7 @@ int main() {
     int target_port = PORT;
     int num_ports = sizeof(source_ports) / sizeof(source_ports[0]);
     srand(time(0)); // Set random seed
-
+    char binary_10000[BUF_SIZE], binary_10001[BUF_SIZE];
     char message_send_10000[BUF_SIZE], message_send_10001[BUF_SIZE];
     char xor_result[MESSAGE_LENGTH + 1]; // Store the XOR result
 
