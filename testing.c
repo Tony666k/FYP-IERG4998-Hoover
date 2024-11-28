@@ -77,7 +77,7 @@ int send_udpmsg(const char *server_ip, int server_port, const char *client_ip, i
     return 0;
 }
 
-// 线程函数：向10000端口发送4个1的数据包
+// 线程函数：向10000端口发送2个4个1的数据包
 void* send_to_10000(void *arg) {
     const char *server_ip = "192.168.229.135"; // 服务器IP地址
     const char *client_ip = "192.168.229.134"; // 客户端IP地址
@@ -87,35 +87,31 @@ void* send_to_10000(void *arg) {
     char part1[5], part2[5], part3[5], part4[5];
     split_message(FIXED_MSG, part1, part2, part3, part4);
 
-    // 发送每个分包
+    // 发送每个分包到10000端口
     send_udpmsg(server_ip, 10000, client_ip, client_port, part1);
     send_udpmsg(server_ip, 10000, client_ip, client_port, part2);
-    send_udpmsg(server_ip, 10000, client_ip, client_port, part3);
-    send_udpmsg(server_ip, 10000, client_ip, client_port, part4);
 
     return NULL;
 }
 
-// 线程函数：向10001端口发送4个1的数据包
+// 线程函数：向10001端口发送2个4个1的数据包
 void* send_to_10001(void *arg) {
     const char *server_ip = "192.168.229.135"; // 服务器IP地址
     const char *client_ip = "192.168.229.134"; // 客户端IP地址
     int client_port = PORT;
 
     // 固定二进制消息分割
-    char part1[5], part2[5], part3[5], part4[5];
-    split_message(FIXED_MSG, part1, part2, part3, part4);
+    char part3[5], part4[5];
+    split_message(FIXED_MSG, NULL, NULL, part3, part4);
 
-    // 发送每个分包
-    send_udpmsg(server_ip, 10001, client_ip, client_port, part1);
-    send_udpmsg(server_ip, 10001, client_ip, client_port, part2);
+    // 发送每个分包到10001端口
     send_udpmsg(server_ip, 10001, client_ip, client_port, part3);
     send_udpmsg(server_ip, 10001, client_ip, client_port, part4);
 
     return NULL;
 }
 
-// 线程函数：向10002端口发送XOR结果
+// 线程函数：计算XOR结果并发送到10002端口
 void* send_to_10002(void *arg) {
     const char *server_ip = "192.168.229.135"; // 服务器IP地址
     const char *client_ip = "192.168.229.134"; // 客户端IP地址
@@ -125,15 +121,39 @@ void* send_to_10002(void *arg) {
     char part1[5], part2[5], part3[5], part4[5];
     split_message(FIXED_MSG, part1, part2, part3, part4);
 
-    // XOR操作：在这里我们假设 XOR 是简单的二进制异或运算
+    // XOR运算：对两个数据包进行XOR
     char XOR_result[5];
     for (int i = 0; i < 4; i++) {
-        // 假设 XOR 的操作是基于字符的
-        XOR_result[i] = (part1[i] == part2[i]) ? '0' : '1'; // XOR 第一个和第二个部分
+        // XOR 第一个和第二个部分
+        XOR_result[i] = (part1[i] == part2[i]) ? '0' : '1';
     }
-    XOR_result[4] = '\0'; // 添加字符串结束符
+    XOR_result[4] = '\0'; // 添加结束符
 
-    // 发送XOR结果
+    // 发送XOR结果到10002端口
+    send_udpmsg(server_ip, 10002, client_ip, client_port, XOR_result);
+
+    return NULL;
+}
+
+// 线程函数：计算第二次XOR并发送到10002端口
+void* send_to_10003(void *arg) {
+    const char *server_ip = "192.168.229.135"; // 服务器IP地址
+    const char *client_ip = "192.168.229.134"; // 客户端IP地址
+    int client_port = PORT;
+
+    // 固定二进制消息分割
+    char part3[5], part4[5];
+    split_message(FIXED_MSG, NULL, NULL, part3, part4);
+
+    // XOR运算：对两个数据包进行XOR
+    char XOR_result[5];
+    for (int i = 0; i < 4; i++) {
+        // XOR 第三个和第四个部分
+        XOR_result[i] = (part3[i] == part4[i]) ? '0' : '1';
+    }
+    XOR_result[4] = '\0'; // 添加结束符
+
+    // 发送XOR结果到10003端口
     send_udpmsg(server_ip, 10002, client_ip, client_port, XOR_result);
 
     return NULL;
@@ -146,20 +166,22 @@ int main() {
 
     // 创建共享数据结构保存消息（此处不用再使用原结构）
     
-    // 发送10次消息
-    for (int i = 0; i < 10; i++) {
-        pthread_t thread_10000, thread_10001, thread_10002;
+    // 发送4次消息
+    for (int i = 0; i < 4; i++) {
+        pthread_t thread_10000, thread_10001, thread_10002, thread_10003;
 
         // 创建线程分别发送数据到10000, 10001
         pthread_create(&thread_10000, NULL, send_to_10000, NULL);
         pthread_create(&thread_10001, NULL, send_to_10001, NULL);
 
+        // 线程发送并计算XOR
+        pthread_create(&thread_10002, NULL, send_to_10002, NULL);
+        pthread_create(&thread_10003, NULL, send_to_10003, NULL);
+
         pthread_join(thread_10000, NULL);  // 等待thread_10000完成
         pthread_join(thread_10001, NULL);  // 等待thread_10001完成
-
-        // 发送XOR结果到10002
-        pthread_create(&thread_10002, NULL, send_to_10002, NULL);
-        pthread_join(thread_10002, NULL); // 等待thread_10002完成
+        pthread_join(thread_10002, NULL);  // 等待thread_10002完成
+        pthread_join(thread_10003, NULL);  // 等待thread_10003完成
 
         // 可选：添加小延时
         // sleep(1);
@@ -167,4 +189,5 @@ int main() {
 
     return 0;
 }
+
 
