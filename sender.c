@@ -26,11 +26,18 @@ void Binary_choose(char *message, int length) {
     message[length] = '\0'; // Add null terminator
 }
 
-// Combine the binary message and UID into a string
-void message_combine(char *message_combined, int *uid, char *binary_message) {
+// Combine the binary message and UID into a string (without UID for XOR calculation)
+void message_combine(char *message_combined, char *binary_message, int *uid, int is_for_xor) {
     Binary_choose(binary_message, MESSAGE_LENGTH); // Generate random binary message
     *uid = UID(); // Generate a random UID
-    snprintf(message_combined, BUF_SIZE, "UID(%d):%s", *uid, binary_message); // Combine UID and binary message
+
+    // Only combine the UID with message if it's not for XOR calculation
+    if (!is_for_xor) {
+        snprintf(message_combined, BUF_SIZE, "UID(%d):%s", *uid, binary_message); // Combine UID and binary message
+    } else {
+        // For XOR, just set the binary message (no UID)
+        snprintf(message_combined, BUF_SIZE, "%s", binary_message);
+    }
 }
 
 // XOR two binary messages and return the result
@@ -91,8 +98,9 @@ void* send_to_10000(void *arg) {
 
     char message_send_10000[BUF_SIZE], binary_message_10000[MESSAGE_LENGTH + 1];
     int uid_10000;
-    
-    message_combine(message_send_10000, &uid_10000, binary_message_10000);
+
+    // Generate the message with binary content and UID
+    message_combine(message_send_10000, binary_message_10000, &uid_10000, 0);
     send_udp_message(source_ip, 10000, target_ip, target_port, message_send_10000);
 
     return NULL;
@@ -106,8 +114,9 @@ void* send_to_10001(void *arg) {
 
     char message_send_10001[BUF_SIZE], binary_message_10001[MESSAGE_LENGTH + 1];
     int uid_10001;
-    
-    message_combine(message_send_10001, &uid_10001, binary_message_10001);
+
+    // Generate the message with binary content and UID
+    message_combine(message_send_10001, binary_message_10001, &uid_10001, 0);
     send_udp_message(source_ip, 10001, target_ip, target_port, message_send_10001);
 
     return NULL;
@@ -121,6 +130,10 @@ void* send_to_10002(void *arg) {
 
     char xor_result[MESSAGE_LENGTH + 1], binary_message_10000[MESSAGE_LENGTH + 1], binary_message_10001[MESSAGE_LENGTH + 1];
     int uid_10002;
+
+    // Generate the binary messages without UID (for XOR calculation)
+    message_combine(binary_message_10000, binary_message_10000, &uid_10002, 1);
+    message_combine(binary_message_10001, binary_message_10001, &uid_10002, 1);
 
     // XOR the binary parts (without UID)
     xor_messages(binary_message_10000, binary_message_10001, xor_result, MESSAGE_LENGTH);
