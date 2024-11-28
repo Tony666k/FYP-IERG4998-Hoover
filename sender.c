@@ -1,4 +1,3 @@
-#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -11,33 +10,11 @@
 #define BUF_SIZE 1024
 #define MESSAGE_LENGTH 8
 
-// Generate random UID using microsecond timestamp
-int UID() {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    srand(tv.tv_sec * 1000000 + tv.tv_usec);
-    return rand();
-}
-
-// Generate a random binary message of the given length
+// Generate random binary message
 void Binary_choose(char *message, int length) {
     for (int i = 0; i < length; i++)
         message[i] = rand() % 2 ? '1' : '0'; // Randomly choose '1' or '0'
     message[length] = '\0'; // Add null terminator
-}
-
-// Combine the binary message and UID into a string (without UID for XOR calculation)
-void message_combine(char *message_combined, char *binary_message, int *uid, int is_for_xor) {
-    Binary_choose(binary_message, MESSAGE_LENGTH); // Generate random binary message
-    *uid = UID(); // Generate a random UID
-
-    // Only combine the UID with message if it's not for XOR calculation
-    if (!is_for_xor) {
-        snprintf(message_combined, BUF_SIZE, "UID(%d):%s", *uid, binary_message); // Combine UID and binary message
-    } else {
-        // For XOR, just set the binary message (no UID)
-        snprintf(message_combined, BUF_SIZE, "%s", binary_message);
-    }
 }
 
 // XOR two binary messages and return the result
@@ -94,8 +71,6 @@ int send_udp_message(const char *source_ip, int source_port, const char *target_
 typedef struct {
     char binary_message_10000[MESSAGE_LENGTH + 1];
     char binary_message_10001[MESSAGE_LENGTH + 1];
-    int uid_10000;
-    int uid_10001;
 } message_data_t;
 
 // Thread function for sending data to port 10000
@@ -108,8 +83,8 @@ void* send_to_10000(void *arg) {
     // Clear binary message before each use
     memset(data->binary_message_10000, 0, sizeof(data->binary_message_10000));
 
-    // Generate the message with binary content and UID
-    message_combine(data->binary_message_10000, data->binary_message_10000, &data->uid_10000, 0);
+    // Generate the message with binary content
+    Binary_choose(data->binary_message_10000, MESSAGE_LENGTH);
     send_udp_message(source_ip, 10000, target_ip, target_port, data->binary_message_10000);
 
     return NULL;
@@ -125,8 +100,8 @@ void* send_to_10001(void *arg) {
     // Clear binary message before each use
     memset(data->binary_message_10001, 0, sizeof(data->binary_message_10001));
 
-    // Generate the message with binary content and UID
-    message_combine(data->binary_message_10001, data->binary_message_10001, &data->uid_10001, 0);
+    // Generate the message with binary content
+    Binary_choose(data->binary_message_10001, MESSAGE_LENGTH);
     send_udp_message(source_ip, 10001, target_ip, target_port, data->binary_message_10001);
 
     return NULL;
@@ -144,13 +119,8 @@ void* send_to_10002(void *arg) {
     // XOR the binary parts (without UID)
     xor_messages(data->binary_message_10000, data->binary_message_10001, xor_result, MESSAGE_LENGTH);
 
-    // Generate UID for 10002 and prepare the message with UID
-    int uid_10002 = UID();
-    char message_send_10002[BUF_SIZE];
-    snprintf(message_send_10002, BUF_SIZE, "UID(%d):%s", uid_10002, xor_result);
-
     // Send XOR result to port 10002
-    send_udp_message(source_ip, 10002, target_ip, target_port, message_send_10002);
+    send_udp_message(source_ip, 10002, target_ip, target_port, xor_result);
 
     return NULL;
 }
