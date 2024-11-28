@@ -93,8 +93,6 @@ void* send_to_10000(void *arg) {
     // Clear binary message for reuse
     memset(data->binary_message_10000, 0, sizeof(data->binary_message_10000));
 
-    // Generate random binary content msg
-    genrandom_binary(data->binary_message_10000, MESSAGE_LENGTH);
     send_udpmsg(server_ip, 10000, client_ip, client_port, data->binary_message_10000);
 
     return NULL; //the end of the thread
@@ -110,8 +108,6 @@ void* send_to_10001(void *arg) {
     // Clear binary message for reuse
     memset(data->binary_message_10001, 0, sizeof(data->binary_message_10001));
 
-    // Generate random binary content msg
-    genrandom_binary(data->binary_message_10001, MESSAGE_LENGTH);
     send_udpmsg(server_ip, 10001, client_ip, client_port, data->binary_message_10001);
 
     return NULL; //the end of the thread
