@@ -90,56 +90,56 @@ int send_udp_message(const char *source_ip, int source_port, const char *target_
     return 0; // Send successful
 }
 
+// Structure to hold the binary messages for 10000 and 10001
+typedef struct {
+    char binary_message_10000[MESSAGE_LENGTH + 1];
+    char binary_message_10001[MESSAGE_LENGTH + 1];
+    int uid_10000;
+    int uid_10001;
+} message_data_t;
+
 // Thread function for sending data to port 10000
 void* send_to_10000(void *arg) {
+    message_data_t *data = (message_data_t *)arg;
     const char *source_ip = "192.168.229.135";
     const char *target_ip = "192.168.229.134";
     int target_port = PORT;
 
-    char message_send_10000[BUF_SIZE], binary_message_10000[MESSAGE_LENGTH + 1];
-    int uid_10000;
-
     // Generate the message with binary content and UID
-    message_combine(message_send_10000, binary_message_10000, &uid_10000, 0);
-    send_udp_message(source_ip, 10000, target_ip, target_port, message_send_10000);
+    message_combine(data->binary_message_10000, data->binary_message_10000, &data->uid_10000, 0);
+    send_udp_message(source_ip, 10000, target_ip, target_port, data->binary_message_10000);
 
     return NULL;
 }
 
 // Thread function for sending data to port 10001
 void* send_to_10001(void *arg) {
+    message_data_t *data = (message_data_t *)arg;
     const char *source_ip = "192.168.229.135";
     const char *target_ip = "192.168.229.134";
     int target_port = PORT;
 
-    char message_send_10001[BUF_SIZE], binary_message_10001[MESSAGE_LENGTH + 1];
-    int uid_10001;
-
     // Generate the message with binary content and UID
-    message_combine(message_send_10001, binary_message_10001, &uid_10001, 0);
-    send_udp_message(source_ip, 10001, target_ip, target_port, message_send_10001);
+    message_combine(data->binary_message_10001, data->binary_message_10001, &data->uid_10001, 0);
+    send_udp_message(source_ip, 10001, target_ip, target_port, data->binary_message_10001);
 
     return NULL;
 }
 
 // Thread function for sending XOR result to port 10002
 void* send_to_10002(void *arg) {
+    message_data_t *data = (message_data_t *)arg;
     const char *source_ip = "192.168.229.135";
     const char *target_ip = "192.168.229.134";
     int target_port = PORT;
 
-    char xor_result[MESSAGE_LENGTH + 1], binary_message_10000[MESSAGE_LENGTH + 1], binary_message_10001[MESSAGE_LENGTH + 1];
-    int uid_10002;
-
-    // Generate the binary messages without UID (for XOR calculation)
-    message_combine(binary_message_10000, binary_message_10000, &uid_10002, 1);
-    message_combine(binary_message_10001, binary_message_10001, &uid_10002, 1);
+    char xor_result[MESSAGE_LENGTH + 1];
 
     // XOR the binary parts (without UID)
-    xor_messages(binary_message_10000, binary_message_10001, xor_result, MESSAGE_LENGTH);
+    xor_messages(data->binary_message_10000, data->binary_message_10001, xor_result, MESSAGE_LENGTH);
 
     // Generate UID for 10002 and prepare the message with UID
-    uid_10002 = UID();
+    int uid_10002 = UID();
     char message_send_10002[BUF_SIZE];
     snprintf(message_send_10002, BUF_SIZE, "UID(%d):%s", uid_10002, xor_result);
 
@@ -153,21 +153,24 @@ int main() {
     const char *source_ip = "192.168.229.135";
     const char *target_ip = "192.168.229.134";
     int target_port = PORT;
-    
+
+    // Create a shared data structure
+    message_data_t data;
+
     // Repeat 10 times
     for (int i = 0; i < 10; i++) {
         pthread_t thread1, thread2, thread3;
 
         // Create threads for sending data to port 10000, 10001, and 10002
-        pthread_create(&thread1, NULL, send_to_10000, NULL);
-        pthread_create(&thread2, NULL, send_to_10001, NULL);
+        pthread_create(&thread1, NULL, send_to_10000, &data);
+        pthread_create(&thread2, NULL, send_to_10001, &data);
 
         // Wait for thread1 and thread2 to complete (send messages to 10000 and 10001)
         pthread_join(thread1, NULL);
         pthread_join(thread2, NULL);
 
         // After sending data to 10000 and 10001, XOR and send to 10002
-        pthread_create(&thread3, NULL, send_to_10002, NULL);
+        pthread_create(&thread3, NULL, send_to_10002, &data);
         pthread_join(thread3, NULL);
 
         // Optional: Add a sleep if you want a small delay between repetitions (e.g., 1 second)
