@@ -94,6 +94,7 @@ void* send_to_10000(void *arg) {
     
     message_combine(message_send_10000, &uid_10000, binary_message_10000);
     send_udp_message(source_ip, 10000, target_ip, target_port, message_send_10000);
+
     return NULL;
 }
 
@@ -108,19 +109,57 @@ void* send_to_10001(void *arg) {
     
     message_combine(message_send_10001, &uid_10001, binary_message_10001);
     send_udp_message(source_ip, 10001, target_ip, target_port, message_send_10001);
+
+    return NULL;
+}
+
+// Thread function for sending XOR result to port 10002
+void* send_to_10002(void *arg) {
+    const char *source_ip = "192.168.229.135";
+    const char *target_ip = "192.168.229.134";
+    int target_port = PORT;
+
+    char xor_result[MESSAGE_LENGTH + 1], binary_message_10000[MESSAGE_LENGTH + 1], binary_message_10001[MESSAGE_LENGTH + 1];
+    int uid_10002;
+
+    // XOR the binary parts (without UID)
+    xor_messages(binary_message_10000, binary_message_10001, xor_result, MESSAGE_LENGTH);
+
+    // Generate UID for 10002 and prepare the message with UID
+    uid_10002 = UID();
+    char message_send_10002[BUF_SIZE];
+    snprintf(message_send_10002, BUF_SIZE, "UID(%d):%s", uid_10002, xor_result);
+
+    // Send XOR result to port 10002
+    send_udp_message(source_ip, 10002, target_ip, target_port, message_send_10002);
+
     return NULL;
 }
 
 int main() {
-    // Create threads for sending data to port 10000 and 10001
-    pthread_t thread1, thread2;
+    const char *source_ip = "192.168.229.135";
+    const char *target_ip = "192.168.229.134";
+    int target_port = PORT;
+    
+    // Repeat 10 times
+    for (int i = 0; i < 10; i++) {
+        pthread_t thread1, thread2, thread3;
 
-    pthread_create(&thread1, NULL, send_to_10000, NULL);
-    pthread_create(&thread2, NULL, send_to_10001, NULL);
+        // Create threads for sending data to port 10000, 10001, and 10002
+        pthread_create(&thread1, NULL, send_to_10000, NULL);
+        pthread_create(&thread2, NULL, send_to_10001, NULL);
 
-    // Wait for both threads to finish
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
+        // Wait for thread1 and thread2 to complete (send messages to 10000 and 10001)
+        pthread_join(thread1, NULL);
+        pthread_join(thread2, NULL);
+
+        // After sending data to 10000 and 10001, XOR and send to 10002
+        pthread_create(&thread3, NULL, send_to_10002, NULL);
+        pthread_join(thread3, NULL);
+
+        // Optional: Add a sleep if you want a small delay between repetitions (e.g., 1 second)
+        // sleep(1);
+    }
 
     return 0;
 }
