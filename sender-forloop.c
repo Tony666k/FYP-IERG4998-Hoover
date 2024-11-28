@@ -4,19 +4,32 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <time.h>
-#include <sys/time.h>
-#include <pthread.h>
-
+#include <sys/time.h> // using smaller time
 
 #define PORT 5001
 #define BUF_SIZE 1024
 #define MESSAGE_LENGTH 8
 
-// Generate random binary message
+// Get a random UID using microsecond timestamp
+int UID() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    srand(tv.tv_sec * 1000000 + tv.tv_usec);
+    return rand();
+}
+
+// Generate a random binary message of the given length
 void Binary_choose(char *message, int length) {
     for (int i = 0; i < length; i++)
         message[i] = rand() % 2 ? '1' : '0'; // Randomly choose '1' or '0'
     message[length] = '\0'; // Add null terminator
+}
+
+// Combine the binary message and UID into a string
+void message_combine(char *message_combined, int *uid, char *binary_message) {
+    Binary_choose(binary_message, MESSAGE_LENGTH); // Generate random binary message
+    *uid = UID(); // Generate a random UID
+    snprintf(message_combined, BUF_SIZE, "UID(%d):%s", *uid, binary_message); // Combine UID and binary message
 }
 
 // XOR two binary messages and return the result
@@ -69,91 +82,57 @@ int send_udp_message(const char *source_ip, int source_port, const char *target_
     return 0; // Send successful
 }
 
-// Structure to hold the binary messages for 10000 and 10001
-typedef struct {
-    char binary_message_10000[MESSAGE_LENGTH + 1];
-    char binary_message_10001[MESSAGE_LENGTH + 1];
-} message_data_t;
-
-// Thread function for sending data to port 10000
-void* send_to_10000(void *arg) {
-    message_data_t *data = (message_data_t *)arg;
-    const char *source_ip = "192.168.229.135";
-    const char *target_ip = "192.168.229.134";
-    int target_port = PORT;
-
-    // Clear binary message before each use
-    memset(data->binary_message_10000, 0, sizeof(data->binary_message_10000));
-
-    // Generate the message with binary content
-    Binary_choose(data->binary_message_10000, MESSAGE_LENGTH);
-    send_udp_message(source_ip, 10000, target_ip, target_port, data->binary_message_10000);
-
-    return NULL;
-}
-
-// Thread function for sending data to port 10001
-void* send_to_10001(void *arg) {
-    message_data_t *data = (message_data_t *)arg;
-    const char *source_ip = "192.168.229.135";
-    const char *target_ip = "192.168.229.134";
-    int target_port = PORT;
-
-    // Clear binary message before each use
-    memset(data->binary_message_10001, 0, sizeof(data->binary_message_10001));
-
-    // Generate the message with binary content
-    Binary_choose(data->binary_message_10001, MESSAGE_LENGTH);
-    send_udp_message(source_ip, 10001, target_ip, target_port, data->binary_message_10001);
-
-    return NULL;
-}
-
-// Thread function for sending XOR result to port 10002
-void* send_to_10002(void *arg) {
-    message_data_t *data = (message_data_t *)arg;
-    const char *source_ip = "192.168.229.135";
-    const char *target_ip = "192.168.229.134";
-    int target_port = PORT;
-
-    char xor_result[MESSAGE_LENGTH + 1];
-
-    // XOR the binary parts (without UID)
-    xor_messages(data->binary_message_10000, data->binary_message_10001, xor_result, MESSAGE_LENGTH);
-
-    // Send XOR result to port 10002
-    send_udp_message(source_ip, 10002, target_ip, target_port, xor_result);
-
-    return NULL;
-}
-
 int main() {
-    const char *source_ip = "192.168.229.135";
     const char *target_ip = "192.168.229.134";
+    const char *source_ip = "192.168.229.135";
+    int source_ports[] = {10000, 10001, 10002};
     int target_port = PORT;
+    int num_ports = sizeof(source_ports) / sizeof(source_ports[0]);
+    srand(time(0)); // Set random seed
 
-    // Create a shared data structure
-    message_data_t data;
+    char message_send_10000[BUF_SIZE], message_send_10001[BUF_SIZE];
+    char binary_message_10000[MESSAGE_LENGTH + 1], binary_message_10001[MESSAGE_LENGTH + 1];
+    char xor_result[MESSAGE_LENGTH + 1]; // Store the XOR result
 
-    // Repeat 10 times
-    for (int i = 0; i < 10; i++) {
-        pthread_t thread1, thread2, thread3;
+    int uid_10000, uid_10001;
 
-        // Create threads for sending data to port 10000, 10001, and 10002
-        pthread_create(&thread1, NULL, send_to_10000, &data);
-        pthread_create(&thread2, NULL, send_to_10001, &data);
+    // Loop for sending data
+    for (int i = 1; i <= MESSAGE_LENGTH; i++) {
+        if (i % 2 != 0) {
+            // Generate message for port 10000
+            message_combine(message_send_10000, &uid_10000, binary_message_10000);
 
-        // Wait for thread1 and thread2 to complete (send messages to 10000 and 10001)
-        pthread_join(thread1, NULL);
-        pthread_join(thread2, NULL);
+            // Send message for port 10000
+            send_udp_message(source_ip, 10000, target_ip, target_port, message_send_10000);
+        }
 
-        // After sending data to 10000 and 10001, XOR and send to 10002
-        pthread_create(&thread3, NULL, send_to_10002, &data);
-        pthread_join(thread3, NULL);
+        if (i % 2 == 0) {
+            // Generate message for port 10001
+            message_combine(message_send_10001, &uid_10001, binary_message_10001);
 
-        // Optional: Add a sleep if you want a small delay between repetitions (e.g., 1 second)
-        // sleep(1);
+            // Send message for port 10001
+            send_udp_message(source_ip, 10001, target_ip, target_port, message_send_10001);
+
+
+              xor_messages(binary_message_10000, binary_message_10001, xor_result, MESSAGE_LENGTH);
+
+                // Generate a new UID for sending XOR result
+                int xor_uid = UID();
+    
+    // Combine UID with XOR result for sending
+    char xor_message_with_uid[BUF_SIZE];
+    snprintf(xor_message_with_uid, sizeof(xor_message_with_uid), "UID(%d):%s", xor_uid, xor_result);
+
+    // Send XOR result with UID to port 10002
+    send_udp_message(source_ip, 10002, target_ip, target_port, xor_message_with_uid);
+    printf("Message sent: %s\n", xor_message_with_uid);
+        }
+
+    
+        
     }
+
 
     return 0;
 }
+
