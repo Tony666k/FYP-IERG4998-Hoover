@@ -11,7 +11,6 @@
 
 // Define a constant message with 4 '1's
 #define FIXED_MESSAGE "1111"
-#define XOR_RESULT "0000" // XOR result of "1111" XOR "1111" is "0000"
 
 // Send UDP message to the client IP and port, return 0 if send is successful, -1 if failed
 int send_udpmsg(const char *server_ip, int server_port, const char *client_ip, int client_port, const char *message) {
@@ -87,27 +86,15 @@ void* send_to_10001(void *arg) {
     return NULL; // End of the thread
 }
 
-// Thread function for sending XOR result to port 10002
-void* send_to_10002(void *arg) {
-    const char *server_ip = "192.168.229.135"; // Our server IP addr
-    const char *client_ip = "192.168.229.134"; // Our client IP addr
-    int client_port = PORT;
-
-    // XOR result of two identical messages is always 0 ("1111" XOR "1111" = "0000")
-    send_udpmsg(server_ip, 10002, client_ip, client_port, XOR_RESULT);
-
-    return NULL; // End of the thread
-}
-
 int main() {
     const char *server_ip = "192.168.229.135"; // Our server IP addr
     const char *client_ip = "192.168.229.134"; // Our client IP addr
     int client_port = PORT;
 
-    // Create threads for sending data to port 10000, 10001, and XOR result to 10002
-    pthread_t thread_10000, thread_10001, thread_10002;
+    // Create threads for sending data to port 10000 and 10001
+    pthread_t thread_10000, thread_10001;
 
-    // Loop to send data and XOR result twice
+    // Loop to send data twice
     for (int i = 0; i < 2; i++) {
         // Start sending data to port 10000 and 10001
         pthread_create(&thread_10000, NULL, send_to_10000, NULL);
@@ -117,15 +104,9 @@ int main() {
         pthread_join(thread_10000, NULL);
         pthread_join(thread_10001, NULL);
 
-        // After sending both, compute and send the XOR result to port 10002
-        pthread_create(&thread_10002, NULL, send_to_10002, NULL);
-        pthread_join(thread_10002, NULL);
-
         // Optional: Add a small delay to avoid overwhelming the network (use sleep if needed)
         // sleep(1);
     }
 
     return 0;
 }
-
-
