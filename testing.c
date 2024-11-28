@@ -69,10 +69,8 @@ void* send_to_10000(void *arg) {
     const char *client_ip = "192.168.229.134"; // Our client IP addr
     int client_port = PORT;
 
-    // Send the fixed message to port 10000 two times
-    for (int i = 0; i < 2; i++) {
-        send_udpmsg(server_ip, 10000, client_ip, client_port, FIXED_MESSAGE);
-    }
+    // Send the fixed message to port 10000 once
+    send_udpmsg(server_ip, 10000, client_ip, client_port, FIXED_MESSAGE);
 
     return NULL; // End of the thread
 }
@@ -83,10 +81,8 @@ void* send_to_10001(void *arg) {
     const char *client_ip = "192.168.229.134"; // Our client IP addr
     int client_port = PORT;
 
-    // Send the fixed message to port 10001 two times
-    for (int i = 0; i < 2; i++) {
-        send_udpmsg(server_ip, 10001, client_ip, client_port, FIXED_MESSAGE);
-    }
+    // Send the fixed message to port 10001 once
+    send_udpmsg(server_ip, 10001, client_ip, client_port, FIXED_MESSAGE);
 
     return NULL; // End of the thread
 }
@@ -111,18 +107,25 @@ int main() {
     // Create threads for sending data to port 10000, 10001, and XOR result to 10002
     pthread_t thread_10000, thread_10001, thread_10002;
 
-    // Start sending data to port 10000 and 10001
-    pthread_create(&thread_10000, NULL, send_to_10000, NULL);
-    pthread_create(&thread_10001, NULL, send_to_10001, NULL);
+    // Loop to send data and XOR result twice
+    for (int i = 0; i < 2; i++) {
+        // Start sending data to port 10000 and 10001
+        pthread_create(&thread_10000, NULL, send_to_10000, NULL);
+        pthread_create(&thread_10001, NULL, send_to_10001, NULL);
 
-    // Wait for both threads to complete
-    pthread_join(thread_10000, NULL);
-    pthread_join(thread_10001, NULL);
+        // Wait for both threads to complete
+        pthread_join(thread_10000, NULL);
+        pthread_join(thread_10001, NULL);
 
-    // Send the XOR result to port 10002
-    pthread_create(&thread_10002, NULL, send_to_10002, NULL);
-    pthread_join(thread_10002, NULL);
+        // After sending both, compute and send the XOR result to port 10002
+        pthread_create(&thread_10002, NULL, send_to_10002, NULL);
+        pthread_join(thread_10002, NULL);
+
+        // Optional: Add a small delay to avoid overwhelming the network (use sleep if needed)
+        // sleep(1);
+    }
 
     return 0;
 }
+
 
