@@ -5,7 +5,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#define PORT 5001 // Set the UDP port
+#define PORT 5001 // Set the UDP port (for the client)
 #define BUF_SIZE 1024 // Set the buffer size
 #define MESSAGE_LENGTH 4 // Define the message length (4 bits)
 
@@ -15,28 +15,11 @@
 // Send UDP message to the client IP and port, return 0 if send is successful, -1 if failed
 int send_udpmsg(const char *server_ip, int server_port, const char *client_ip, int client_port, const char *message) {
     int sock_descriptor;
-    struct sockaddr_in server_addr, client_addr;
+    struct sockaddr_in client_addr;
 
     // Create socket
     if ((sock_descriptor = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         perror("Socket creation failed");
-        return -1; // Failed, return -1
-    }
-
-    // Set server address
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    if (inet_pton(AF_INET, server_ip, &server_addr.sin_addr) <= 0) {
-        perror("Invalid server IP address");
-        close(sock_descriptor);
-        return -1;
-    }
-    server_addr.sin_port = htons(server_port);
-
-    // Bind the server port
-    if (bind(sock_descriptor, (const struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        perror("Bind failed");
-        close(sock_descriptor);
         return -1; // Failed, return -1
     }
 
@@ -57,7 +40,7 @@ int send_udpmsg(const char *server_ip, int server_port, const char *client_ip, i
         return -1; // Failed, return -1
     }
 
-    printf("Message sent: %s\n", message);
+    printf("Message sent to port %d: %s\n", server_port, message);
     close(sock_descriptor);
     return 0; // Success, return 0
 }
