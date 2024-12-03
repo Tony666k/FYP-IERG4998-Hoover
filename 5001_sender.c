@@ -68,7 +68,7 @@ int send_udpmsg(const char *server_ip, int server_port, const char *client_ip, i
 void* send_to_10000(void *arg) {
     const char *server_ip = "192.168.229.135"; // Our server IP addr
     const char *client_ip = "192.168.229.134"; // Our client IP addr
-    int client_port = 10000;
+    int client_port = 5001;
 
     // Send the fixed message to port 10000 once
     send_udpmsg(server_ip, 10000, client_ip, client_port, FIXED_MESSAGE);
@@ -80,7 +80,7 @@ void* send_to_10000(void *arg) {
 void* send_to_10001(void *arg) {
     const char *server_ip = "192.168.229.135"; // Our server IP addr
     const char *client_ip = "192.168.229.134"; // Our client IP addr
-    int client_port = 10001;
+    int client_port = 5001;
 
     // Send the fixed message to port 10001 once
     send_udpmsg(server_ip, 10001, client_ip, client_port, FIXED_MESSAGE);
@@ -92,7 +92,7 @@ void* send_to_10001(void *arg) {
 void* send_to_10002(void *arg) {
     const char *server_ip = "192.168.229.135"; // Our server IP addr
     const char *client_ip = "192.168.229.134"; // Our client IP addr
-    int client_port = 10002;
+    int client_port = 5001;
 
     // Send the fixed message to port 10002 once
     send_udpmsg(server_ip, 10002, client_ip, client_port, ZERO_MESSAGE);
