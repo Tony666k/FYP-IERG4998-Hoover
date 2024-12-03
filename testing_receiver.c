@@ -5,16 +5,17 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#define BUF_SIZE 1024       // 設置緩衝區大小
-#define MESSAGE_LENGTH 8    // 定義消息長度
+#define BUF_SIZE 1024 // 設定緩衝區大小
 
-// 接收 UDP 消息的函數
+// 定義接收端每個端口的處理函數
 void* receive_udpmsg(void* arg) {
     int listen_port = *((int*)arg); // 端口號
     int sock_descriptor;
     struct sockaddr_in server_addr, client_addr;
     socklen_t addr_len = sizeof(client_addr);
     char buffer[BUF_SIZE];
+
+    printf("Starting to listen on port %d...\n", listen_port); // 調試輸出
 
     // 創建 UDP 套接字
     if ((sock_descriptor = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -54,24 +55,20 @@ void* receive_udpmsg(void* arg) {
 }
 
 int main() {
-    // 監聽端口
-    int ports[] = {10001, 10000, 10002};  // 需要監聽的端口
-    int num_ports = sizeof(ports) / sizeof(ports[0]);
-    pthread_t threads[num_ports];  // 線程數組
+    pthread_t thread_10000, thread_10001, thread_10002;
+    int port_10000 = 10000;
+    int port_10001 = 10001;
+    int port_10002 = 10002;
 
-    // 創建線程來監聽每個端口
-    for (int i = 0; i < num_ports; i++) {
-        // 創建一個線程來處理端口的接收
-        if (pthread_create(&threads[i], NULL, receive_udpmsg, &ports[i]) != 0) {
-            perror("Failed to create thread");
-            return 1;  // 如果線程創建失敗，退出程序
-        }
-    }
+    // 創建處理三個端口的線程
+    pthread_create(&thread_10000, NULL, receive_udpmsg, &port_10000);
+    pthread_create(&thread_10001, NULL, receive_udpmsg, &port_10001);
+    pthread_create(&thread_10002, NULL, receive_udpmsg, &port_10002);
 
-    // 等待所有線程完成
-    for (int i = 0; i < num_ports; i++) {
-        pthread_join(threads[i], NULL);
-    }
+    // 等待線程結束
+    pthread_join(thread_10000, NULL);
+    pthread_join(thread_10001, NULL);
+    pthread_join(thread_10002, NULL);
 
     return 0;
 }
